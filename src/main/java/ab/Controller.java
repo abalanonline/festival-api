@@ -23,18 +23,28 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.logging.Logger;
 
-public class Controller extends NanoHTTPD {
+public class Controller extends NanoHTTPD implements AutoCloseable {
 
-  private static final Logger log = Logger.getLogger("ab.festival-api");
   public static final int API_PORT = 59125;
   public static final String API_URI = "/process";
 
   public Controller() {
     super(API_PORT);
     mimeTypes();
-    log.info(Exec.exec(new String[]{"festival"}, "(print (voice.list))"));
+    System.out.print(Exec.exec(new String[]{"festival"}, "(print (voice.list))"));
+    try {
+      System.out.println("start");
+      start();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  @Override
+  public void close() {
+    stop();
+    System.out.println("stop");
   }
 
   @Override
@@ -61,10 +71,4 @@ public class Controller extends NanoHTTPD {
     return super.serve(session);
   }
 
-  public static void main(String[] args) throws IOException {
-    Controller app = new Controller();
-    app.start();
-    System.in.read();
-    app.stop();
-  }
 }
