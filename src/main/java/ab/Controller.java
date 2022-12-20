@@ -53,6 +53,9 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
     if (uri.equals(API_URI)) {
       Map<String, String> map = session.getParms();
       try {
+        if (Method.POST.equals(session.getMethod())) {
+          session.parseBody(map);
+        }
         Path wav = Files.createTempFile("festival-api_", ".wav");
         String eval = "";
         String voice = map.get("VOICE");
@@ -64,8 +67,8 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
             map.get("INPUT_TEXT"));
         return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",
             Files.newInputStream(wav), Files.size(wav));
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
+      } catch (IOException | IllegalStateException | ResponseException e) {
+        return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, e.getMessage());
       }
     }
     return super.serve(session);

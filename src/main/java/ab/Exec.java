@@ -69,9 +69,7 @@ public class Exec {
         }
         return futureStdout.join();
       }
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    } catch (InterruptedException e) {
+    } catch (IOException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
   }
