@@ -44,7 +44,14 @@ public class Controller extends NanoHTTPD {
       Map<String, String> map = session.getParms();
       try {
         Path wav = Files.createTempFile("festival-api_", ".wav");
-        Exec.exec(new String[]{"text2wave", "-o", wav.toString()}, map.get("INPUT_TEXT"));
+        String eval = "";
+        String voice = map.get("VOICE");
+        if (voice != null) {
+          eval += " (voice_" + voice + ")";
+        }
+        eval += " (Parameter.set 'Duration_Stretch 1)";
+        Exec.exec(new String[]{"text2wave", "-o", wav.toString(), "-eval", "(list" + eval + ")"},
+            map.get("INPUT_TEXT"));
         return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",
             Files.newInputStream(wav), Files.size(wav));
       } catch (IOException e) {
