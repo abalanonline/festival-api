@@ -18,8 +18,35 @@ RUN mvn clean package
 
 FROM debian:11-slim
 RUN apt-get update &&\
-  apt-get install -y festival openjdk-11-jre-headless &&\
+  apt-get install -y openjdk-11-jre-headless wget bzip2 sgml-base libncurses5 sysv-rc &&\
+  wget http://archive.debian.org/debian/pool/main/e/esound/esound-common_0.2.36-3_all.deb &&\
+  dpkg -i esound-common_0.2.36-3_all.deb &&\
+  wget http://archive.debian.org/debian/pool/main/a/audiofile/libaudiofile0_0.2.6-8_amd64.deb &&\
+  dpkg -i libaudiofile0_0.2.6-8_amd64.deb &&\
+  wget http://archive.debian.org/debian/pool/main/e/esound/libesd0_0.2.36-3_amd64.deb &&\
+  dpkg -i libesd0_0.2.36-3_amd64.deb &&\
+  wget http://archive.debian.org/debian/pool/main/s/speech-tools/libestools1.2_1.2.96~beta-2_amd64.deb &&\
+  dpkg -i libestools1.2_1.2.96~beta-2_amd64.deb &&\
+  wget http://archive.debian.org/debian/pool/main/f/festival/festival_1.96~beta-7_amd64.deb &&\
+  ln -s /bin/echo /usr/local/bin/install-info &&\
+  dpkg -i festival_1.96~beta-7_amd64.deb &&\
+  rm /usr/local/bin/install-info &&\
+  apt-get -y install festlex-cmu festlex-poslex festvox-kallpc16k &&\
+  rm -rf *.deb &&\
   rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/share/festival/voices/ &&\
+  wget http://hts.sp.nitech.ac.jp/archives/2.1/festvox_nitech_us_awb_arctic_hts-2.1.tar.bz2 &&\
+  wget http://hts.sp.nitech.ac.jp/archives/2.1/festvox_nitech_us_bdl_arctic_hts-2.1.tar.bz2 &&\
+  wget http://hts.sp.nitech.ac.jp/archives/2.1/festvox_nitech_us_clb_arctic_hts-2.1.tar.bz2 &&\
+  wget http://hts.sp.nitech.ac.jp/archives/2.1/festvox_nitech_us_jmk_arctic_hts-2.1.tar.bz2 &&\
+  wget http://hts.sp.nitech.ac.jp/archives/2.1/festvox_nitech_us_rms_arctic_hts-2.1.tar.bz2 &&\
+  wget http://hts.sp.nitech.ac.jp/archives/2.1/festvox_nitech_us_slt_arctic_hts-2.1.tar.bz2 &&\
+  for z in `ls *.bz2` ; do tar xvf $z ; done &&\
+  mv lib/voices/* /usr/share/festival/voices/ &&\
+  mv lib/hts.scm /usr/share/festival/ &&\
+  rm -rf *.bz2
+
 COPY --from=build /target/festival-api-jar-with-dependencies.jar /festival-api.jar
 EXPOSE 59125
 CMD ["java", "-jar", "/festival-api.jar"]
