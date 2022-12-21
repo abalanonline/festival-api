@@ -18,21 +18,25 @@ package ab;
 
 import fi.iki.elonen.NanoHTTPD;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Function;
 
 public class Controller extends NanoHTTPD implements AutoCloseable {
 
   public static final int API_PORT = 59125;
   public static final String API_URI = "/process";
 
+  Function<TextRequest, byte[]> festival;
+  Function<TextRequest, byte[]> svoxPico;
+
   public Controller() {
     super(API_PORT);
     mimeTypes();
-    System.out.print(Exec.exec(new String[]{"festival"}, "(print (voice.list))"));
+    festival = new Festival();
+    svoxPico = festival;
     try {
       System.out.println("start");
       start();
@@ -56,18 +60,15 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
         if (Method.POST.equals(session.getMethod())) {
           session.parseBody(map);
         }
-        Path wav = Files.createTempFile("festival-api_", ".wav");
-        String eval = "";
         String voice = map.get("VOICE");
-        if (voice != null) {
-          eval += " (voice_" + voice + ")";
-        }
-        eval += " (Parameter.set 'Duration_Stretch 1)";
-        Exec.exec(new String[]{"text2wave", "-o", wav.toString(), "-eval", "(list" + eval + ")"},
-            map.get("INPUT_TEXT"));
+        Function<TextRequest, byte[]> tts = voice == null || voice.startsWith("nanotts:")
+            || voice.equals("svox") || voice.equals("ttspico")
+            ? this.svoxPico : this.festival;
+        TextRequest request = new TextRequest(map.get("INPUT_TEXT")).voice(voice);
+        byte[] response = tts.apply(request);
         return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",
-            Files.newInputStream(wav), Files.size(wav));
-      } catch (IOException | IllegalStateException | ResponseException e) {
+            new ByteArrayInputStream(response), response.length);
+      } catch (IOException | UncheckedIOException | ResponseException | Exec.ExecException e) {
         return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, e.getMessage());
       }
     }

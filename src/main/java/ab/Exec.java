@@ -65,13 +65,22 @@ public class Exec {
         CompletableFuture.allOf(futureStdin, futureStdout, futureStderr).join();
         String stderrData = futureStderr.join();
         if (process.waitFor() != 0 || !stderrData.isEmpty()) {
-          throw new IllegalStateException(stderrData);
+          throw new ExecException(stderrData);
         }
         return futureStdout.join();
       }
     } catch (IOException | InterruptedException e) {
-      throw new IllegalStateException(e);
+      throw new ExecException(e);
     }
   }
 
+  public static class ExecException extends RuntimeException {
+    public ExecException(String message) {
+      super(message);
+    }
+
+    public ExecException(Throwable cause) {
+      super(cause);
+    }
+  }
 }
