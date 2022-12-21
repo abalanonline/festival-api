@@ -16,7 +16,6 @@
 
 package ab;
 
-// angry pojo
 public class TextRequest {
   public String inputText;
   public String voice;

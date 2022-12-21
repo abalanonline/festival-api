@@ -29,14 +29,14 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
   public static final int API_PORT = 59125;
   public static final String API_URI = "/process";
 
-  Function<TextRequest, byte[]> festival;
-  Function<TextRequest, byte[]> svoxPico;
+  private final Function<TextRequest, byte[]> festival;
+  private final Function<TextRequest, byte[]> svoxPico;
 
   public Controller() {
     super(API_PORT);
     mimeTypes();
     festival = new Festival();
-    svoxPico = festival;
+    svoxPico = new SvoxPico();
     try {
       System.out.println("start");
       start();
@@ -64,7 +64,11 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
         Function<TextRequest, byte[]> tts = voice == null || voice.startsWith("nanotts:")
             || voice.equals("svox") || voice.equals("ttspico")
             ? this.svoxPico : this.festival;
-        TextRequest request = new TextRequest(map.get("INPUT_TEXT")).voice(voice);
+        TextRequest request = new TextRequest(map.get("INPUT_TEXT")).locale(map.get("LOCALE")).voice(voice);
+        String speed = map.get("SPEED");
+        if (speed != null) {
+          request.speed(Double.parseDouble(speed));
+        }
         byte[] response = tts.apply(request);
         return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",
             new ByteArrayInputStream(response), response.length);

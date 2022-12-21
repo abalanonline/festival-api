@@ -22,12 +22,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Function;
 
-public class Festival implements Function<TextRequest, byte[]> {
+public class SvoxPico implements Function<TextRequest, byte[]> {
 
-  private String voiceList;
-  public Festival() {
-    voiceList = Exec.exec(new String[]{"festival"}, "(print (voice.list))").trim();
-    System.out.println(voiceList);
+  public static final String LOCALE_LIST = "en-US en-GB de-DE es-ES fr-FR it-IT";
+
+  public SvoxPico() {
+    System.out.println(LOCALE_LIST);
   }
 
   @Override
@@ -35,15 +35,15 @@ public class Festival implements Function<TextRequest, byte[]> {
     byte[] bytes;
     try {
       Path wav = Files.createTempFile("festival-api_", ".wav");
-      String eval = "";
-      if (request.voice != null) {
-        eval += " (voice_" + request.voice + ")";
+      String cmd = "pico2wave -w " + wav;
+      if (request.locale != null) {
+        cmd += " -l " + request.locale.replace('_', '-'); // BCP 47, RFC 5646 sensitive
       }
+      String tags = "";
       if (request.speed != null) {
-        eval += String.format(" (Parameter.set 'Duration_Stretch %f)", 1 / request.speed);
+        tags += String.format("<speed level=\"%d\">", (int) Math.round(request.speed * 100));
       }
-      Exec.exec(new String[]{"text2wave", "-o", wav.toString(), "-eval", "(list" + eval + ")"},
-          request.inputText);
+      Exec.exec(cmd.split("\\s+"), tags + request.inputText);
       bytes = Files.readAllBytes(wav);
       Files.delete(wav);
     } catch (IOException e) {
