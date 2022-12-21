@@ -43,6 +43,9 @@ public class SvoxPico implements Function<TextRequest, byte[]> {
       if (request.speed != null) {
         tags += String.format("<speed level=\"%d\">", (int) Math.round(request.speed * 100));
       }
+      if (request.volume != null) {
+        tags += String.format("<volume level=\"%d\">", (int) Math.round(request.volume * 100));
+      }
       Exec.exec(cmd.split("\\s+"), tags + request.inputText);
       bytes = Files.readAllBytes(wav);
       Files.delete(wav);

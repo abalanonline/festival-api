@@ -69,6 +69,10 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
         if (speed != null) {
           request.speed(Double.parseDouble(speed));
         }
+        String volume = map.get("VOLUME");
+        if (volume != null) {
+          request.volume(Double.parseDouble(volume));
+        }
         byte[] response = tts.apply(request);
         return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",
             new ByteArrayInputStream(response), response.length);

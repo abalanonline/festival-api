@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 public class Festival implements Function<TextRequest, byte[]> {
@@ -34,16 +36,30 @@ public class Festival implements Function<TextRequest, byte[]> {
   public byte[] apply(TextRequest request) {
     byte[] bytes;
     try {
+      List<String> cmd = new ArrayList<>();
+      cmd.add("text2wave");
       Path wav = Files.createTempFile("festival-api_", ".wav");
-      String eval = "";
+      cmd.add("-o");
+      cmd.add(wav.toString());
+
+      if (request.volume != null) {
+        cmd.add("-scale");
+        cmd.add(String.format("%f", request.volume));
+      }
+
+      List<String> eval = new ArrayList<>();
       if (request.voice != null) {
-        eval += " (voice_" + request.voice + ")";
+        eval.add("(voice_" + request.voice + ")");
       }
       if (request.speed != null) {
-        eval += String.format(" (Parameter.set 'Duration_Stretch %f)", 1 / request.speed);
+        eval.add(String.format("(Parameter.set 'Duration_Stretch %f)", 1 / request.speed));
       }
-      Exec.exec(new String[]{"text2wave", "-o", wav.toString(), "-eval", "(list" + eval + ")"},
-          request.inputText);
+      if (eval.size() > 0) {
+        cmd.add("-eval");
+        cmd.add(eval.size() == 1 ? eval.get(0) : "(list " + String.join(" ", eval) + ")");
+      }
+
+      Exec.exec(cmd.toArray(new String[0]), request.inputText);
       bytes = Files.readAllBytes(wav);
       Files.delete(wav);
     } catch (IOException e) {
