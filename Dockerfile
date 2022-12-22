@@ -17,7 +17,8 @@ COPY . ./
 RUN mvn clean package
 
 FROM debian:11-slim
-RUN apt-get update &&\
+RUN sed -i -e 's/bullseye main/bullseye main non-free/' /etc/apt/sources.list &&\
+  apt-get update &&\
   apt-get install -y festival libttspico-utils openjdk-11-jre-headless &&\
   rm -rf /var/lib/apt/lists/*
 COPY --from=build /target/festival-api-jar-with-dependencies.jar /festival-api.jar
