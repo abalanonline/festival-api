@@ -47,6 +47,14 @@ public class Exec {
     return nread;
   }
 
+  private static long copyAndCloseDumb(InputStream source, OutputStream sink) {
+    try {
+      return copyAndClose(source, sink);
+    } catch (UncheckedIOException e) {
+      return 0; // do nothing
+    }
+  }
+
   private static String readTextStream(InputStream inputStream) {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     copyAndClose(inputStream, outputStream);
@@ -59,21 +67,28 @@ public class Exec {
       try (OutputStream stdin = process.getOutputStream();
            InputStream stdout = process.getInputStream(); InputStream stderr = process.getErrorStream()) {
         CompletableFuture<Void> futureStdin = CompletableFuture.runAsync(()
-            -> copyAndClose(new ByteArrayInputStream(stdinData.getBytes(StandardCharsets.UTF_8)), stdin));
+            -> copyAndCloseDumb(new ByteArrayInputStream(stdinData.getBytes(StandardCharsets.UTF_8)), stdin));
         CompletableFuture<String> futureStdout = CompletableFuture.supplyAsync(() -> readTextStream(stdout));
         CompletableFuture<String> futureStderr = CompletableFuture.supplyAsync(() -> readTextStream(stderr));
         CompletableFuture.allOf(futureStdin, futureStdout, futureStderr).join();
         String stderrData = futureStderr.join();
         if (process.waitFor() != 0 || !stderrData.isEmpty()) {
-          throw new IllegalStateException(stderrData);
+          throw new ExecException(stderrData);
         }
         return futureStdout.join();
       }
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    } catch (InterruptedException e) {
-      throw new IllegalStateException(e);
+    } catch (IOException | InterruptedException e) {
+      throw new ExecException(e);
     }
   }
 
+  public static class ExecException extends RuntimeException {
+    public ExecException(String message) {
+      super(message);
+    }
+
+    public ExecException(Throwable cause) {
+      super(cause);
+    }
+  }
 }

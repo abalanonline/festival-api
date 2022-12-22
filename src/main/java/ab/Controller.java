@@ -18,21 +18,25 @@ package ab;
 
 import fi.iki.elonen.NanoHTTPD;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Function;
 
 public class Controller extends NanoHTTPD implements AutoCloseable {
 
   public static final int API_PORT = 59125;
   public static final String API_URI = "/process";
 
+  private final Function<TextRequest, byte[]> festival;
+  private final Function<TextRequest, byte[]> svoxPico;
+
   public Controller() {
     super(API_PORT);
     mimeTypes();
-    System.out.print(Exec.exec(new String[]{"festival"}, "(print (voice.list))"));
+    festival = new Festival();
+    svoxPico = new SvoxPico();
     try {
       System.out.println("start");
       start();
@@ -53,19 +57,27 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
     if (uri.equals(API_URI)) {
       Map<String, String> map = session.getParms();
       try {
-        Path wav = Files.createTempFile("festival-api_", ".wav");
-        String eval = "";
-        String voice = map.get("VOICE");
-        if (voice != null) {
-          eval += " (voice_" + voice + ")";
+        if (Method.POST.equals(session.getMethod())) {
+          session.parseBody(map);
         }
-        eval += " (Parameter.set 'Duration_Stretch 1)";
-        Exec.exec(new String[]{"text2wave", "-o", wav.toString(), "-eval", "(list" + eval + ")"},
-            map.get("INPUT_TEXT"));
+        String voice = map.get("VOICE");
+        Function<TextRequest, byte[]> tts = voice == null || voice.startsWith("nanotts:")
+            || voice.equals("svox") || voice.equals("ttspico")
+            ? this.svoxPico : this.festival;
+        TextRequest request = new TextRequest(map.get("INPUT_TEXT")).locale(map.get("LOCALE")).voice(voice);
+        String speed = map.get("SPEED");
+        if (speed != null) {
+          request.speed(Double.parseDouble(speed));
+        }
+        String volume = map.get("VOLUME");
+        if (volume != null) {
+          request.volume(Double.parseDouble(volume));
+        }
+        byte[] response = tts.apply(request);
         return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",
-            Files.newInputStream(wav), Files.size(wav));
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
+            new ByteArrayInputStream(response), response.length);
+      } catch (IOException | UncheckedIOException | ResponseException | Exec.ExecException e) {
+        return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, e.getMessage());
       }
     }
     return super.serve(session);
