@@ -24,10 +24,10 @@ import java.util.function.Function;
 
 public class SvoxPico implements Function<TextRequest, byte[]> {
 
-  public static final String LOCALE_LIST = "en-US en-GB de-DE es-ES fr-FR it-IT";
+  public static final String[] LOCALE_LIST = {"en-US", "en-GB", "de-DE", "es-ES", "fr-FR", "it-IT"};
 
   public SvoxPico() {
-    System.out.println(LOCALE_LIST);
+    System.out.println(String.join(" ", LOCALE_LIST));
   }
 
   @Override
@@ -36,8 +36,17 @@ public class SvoxPico implements Function<TextRequest, byte[]> {
     try {
       Path wav = Files.createTempFile("festival-api_", ".wav");
       String cmd = "pico2wave -w " + wav;
-      if (request.locale != null) {
-        cmd += " -l " + request.locale.replace('_', '-'); // BCP 47, RFC 5646 sensitive
+      String locale = request.locale;
+      if (locale != null) {
+        if (locale.length() == 2) {
+          for (String s : LOCALE_LIST) {
+            if (s.startsWith(locale)) {
+              locale = s;
+              break;
+            }
+          }
+        }
+        cmd += " -l " + locale.replace('_', '-'); // BCP 47, RFC 5646 sensitive
       }
       String tags = "";
       if (request.speed != null) {
