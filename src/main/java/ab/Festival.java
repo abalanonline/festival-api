@@ -16,15 +16,11 @@
 
 package ab;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Consumer;
 
-public class Festival implements Function<TextRequest, byte[]> {
+public class Festival implements Consumer<TextRequest> {
 
   private String voiceList;
   public Festival() {
@@ -33,38 +29,29 @@ public class Festival implements Function<TextRequest, byte[]> {
   }
 
   @Override
-  public byte[] apply(TextRequest request) {
-    byte[] bytes;
-    try {
-      List<String> cmd = new ArrayList<>();
-      cmd.add("text2wave");
-      Path wav = Files.createTempFile("festival-api_", ".wav");
-      cmd.add("-o");
-      cmd.add(wav.toString());
+  public void accept(TextRequest request) {
+    List<String> cmd = new ArrayList<>();
+    cmd.add("text2wave");
+    cmd.add("-o");
+    cmd.add(request.targetFile.toString());
 
-      if (request.volume != null) {
-        cmd.add("-scale");
-        cmd.add(String.format("%f", request.volume));
-      }
-
-      List<String> eval = new ArrayList<>();
-      if (request.voice != null) {
-        eval.add("(voice_" + request.voice + ")");
-      }
-      if (request.speed != null) {
-        eval.add(String.format("(Parameter.set 'Duration_Stretch %f)", 1 / request.speed));
-      }
-      if (eval.size() > 0) {
-        cmd.add("-eval");
-        cmd.add(eval.size() == 1 ? eval.get(0) : "(list " + String.join(" ", eval) + ")");
-      }
-
-      Exec.exec(cmd.toArray(new String[0]), request.inputText);
-      bytes = Files.readAllBytes(wav);
-      Files.delete(wav);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
+    if (request.volume != null) {
+      cmd.add("-scale");
+      cmd.add(String.format("%f", request.volume));
     }
-    return bytes;
+
+    List<String> eval = new ArrayList<>();
+    if (request.voice != null) {
+      eval.add("(voice_" + request.voice + ")");
+    }
+    if (request.speed != null) {
+      eval.add(String.format("(Parameter.set 'Duration_Stretch %f)", 1 / request.speed));
+    }
+    if (eval.size() > 0) {
+      cmd.add("-eval");
+      cmd.add(eval.size() == 1 ? eval.get(0) : "(list " + String.join(" ", eval) + ")");
+    }
+
+    Exec.exec(cmd.toArray(new String[0]), request.inputText);
   }
 }

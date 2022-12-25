@@ -21,22 +21,25 @@ import fi.iki.elonen.NanoHTTPD;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.Consumer;
 
 public class Controller extends NanoHTTPD implements AutoCloseable {
 
   public static final int API_PORT = 59125;
   public static final String API_URI = "/process";
 
-  private final Function<TextRequest, byte[]> festival;
-  private final Function<TextRequest, byte[]> svoxPico;
+  private final Consumer<TextRequest> festival;
+  private final Consumer<TextRequest> svoxPico;
+  private final WaveProcess waveProcess;
 
   public Controller() {
     super(API_PORT);
     mimeTypes();
     festival = new Festival();
     svoxPico = new SvoxPico();
+    waveProcess = new WaveProcess();
     try {
       System.out.println("start");
       start();
@@ -61,10 +64,11 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
           session.parseBody(map);
         }
         String voice = map.get("VOICE");
-        Function<TextRequest, byte[]> tts = voice == null || voice.startsWith("nanotts:")
+        Consumer<TextRequest> tts = voice == null || voice.startsWith("nanotts:")
             || voice.equals("svox") || voice.equals("ttspico")
             ? this.svoxPico : this.festival;
-        TextRequest request = new TextRequest(map.get("INPUT_TEXT")).locale(map.get("LOCALE")).voice(voice);
+        TextRequest request = new TextRequest(map.get("INPUT_TEXT")).locale(map.get("LOCALE")).voice(voice)
+            .targetFile(Files.createTempFile("festival-api_", ".wav"));
         String speed = map.get("SPEED");
         if (speed != null) {
           request.speed(Double.parseDouble(speed));
@@ -73,7 +77,8 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
         if (volume != null) {
           request.volume(Double.parseDouble(volume));
         }
-        byte[] response = tts.apply(request);
+        tts.accept(request);
+        byte[] response = waveProcess.apply(request);
         return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",
             new ByteArrayInputStream(response), response.length);
       } catch (IOException | UncheckedIOException | ResponseException | Exec.ExecException e) {

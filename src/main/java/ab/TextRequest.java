@@ -16,12 +16,15 @@
 
 package ab;
 
+import java.nio.file.Path;
+
 public class TextRequest {
   public String inputText;
   public String voice;
   public String locale;
   public Double speed;
   public Double volume;
+  public Path targetFile;
 
   public TextRequest(String inputText) {
     this.inputText = inputText;
@@ -44,6 +47,11 @@ public class TextRequest {
 
   public TextRequest volume(double volume) {
     this.volume = volume;
+    return this;
+  }
+
+  public TextRequest targetFile(Path targetFile) {
+    this.targetFile = targetFile;
     return this;
   }
 }
