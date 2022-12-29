@@ -22,6 +22,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -68,15 +69,18 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
         Consumer<TextRequest> tts = voice == null || voice.startsWith("nanotts:")
             || voice.equals("svox") || voice.equals("ttspico")
             ? this.svoxPico : this.festival;
-        TextRequest request = new TextRequest(map.get("INPUT_TEXT")).locale(map.get("LOCALE")).voice(voice)
-            .targetFile(Files.createTempFile("festival-api_", ".wav"));
+        TextRequest request = new TextRequest(map.get("INPUT_TEXT"), Files.createTempFile("festival-api_", ".wav"))
+            .locale(map.get("LOCALE")).voice(voice);
         Optional.ofNullable(map.get("SPEED")).ifPresent(s -> request.speed(Double.parseDouble(s)));
         Optional.ofNullable(map.get("VOLUME")).ifPresent(s -> request.volume(Double.parseDouble(s)));
         tts.accept(request);
         byte[] response = waveProcess.apply(request);
+        System.out.println(Instant.now() + " ok");
         return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",
             new ByteArrayInputStream(response), response.length);
       } catch (IOException | UncheckedIOException | ResponseException | Exec.ExecException e) {
+        System.err.println(Instant.now());
+        e.printStackTrace();
         return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, e.getMessage());
       }
     }

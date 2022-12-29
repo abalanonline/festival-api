@@ -20,16 +20,21 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
+/**
+ * If speed or volume processed by the engine, it have to reset the value.
+ * So the post-processing stage will not do it the second time.
+ */
 public class TextRequest {
   public String inputText;
+  public Path targetFile;
   public Optional<String> voice = Optional.empty();
   public Optional<String> locale = Optional.empty();
   public OptionalDouble speed = OptionalDouble.empty();
   public OptionalDouble volume = OptionalDouble.empty();
-  public Path targetFile;
 
-  public TextRequest(String inputText) {
+  public TextRequest(String inputText, Path targetFile) {
     this.inputText = inputText;
+    this.targetFile = targetFile;
   }
 
   public TextRequest voice(String voice) {
@@ -52,8 +57,4 @@ public class TextRequest {
     return this;
   }
 
-  public TextRequest targetFile(Path targetFile) {
-    this.targetFile = targetFile;
-    return this;
-  }
 }
