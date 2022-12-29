@@ -36,7 +36,7 @@ public class Festival implements Consumer<TextRequest> {
     cmd.add("-o");
     cmd.add(request.targetFile.toString());
 
-    // volume is nearly identical to ffmpeg
+    // volume is identical to ffmpeg
     request.volume.ifPresent(volume -> {
       cmd.add("-scale");
       cmd.add(String.format("%f", volume));

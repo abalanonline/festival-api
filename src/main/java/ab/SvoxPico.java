@@ -18,6 +18,7 @@ package ab;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 public class SvoxPico implements Consumer<TextRequest> {
@@ -47,8 +48,13 @@ public class SvoxPico implements Consumer<TextRequest> {
       cmd.add(locale.replace('_', '-')); // BCP 47, RFC 5646 sensitive
     });
     StringBuilder tags = new StringBuilder();
+    // speed is identical to ffmpeg with the exception of pauses, they are not affected
     request.speed.ifPresent(speed -> tags.append(String.format("<speed level=\"%d\">", (int) Math.round(speed * 100))));
-    request.volume.ifPresent(vol -> tags.append(String.format("<volume level=\"%d\">", (int) Math.round(vol * 100))));
+    request.speed = OptionalDouble.empty();
+    // VOLUME=1.0 set the default <volume level="50">
+    // identical to ffmpeg with <1% difference
+    request.volume.ifPresent(vol -> tags.append(String.format("<volume level=\"%d\">", (int) Math.round(vol * 50))));
+    request.volume = OptionalDouble.empty();
     Exec.exec(cmd.toArray(new String[0]), tags.toString() + request.inputText);
   }
 }
