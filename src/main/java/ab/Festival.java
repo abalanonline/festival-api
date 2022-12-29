@@ -35,18 +35,14 @@ public class Festival implements Consumer<TextRequest> {
     cmd.add("-o");
     cmd.add(request.targetFile.toString());
 
-    if (request.volume != null) {
+    request.volume.ifPresent(volume -> {
       cmd.add("-scale");
-      cmd.add(String.format("%f", request.volume));
-    }
+      cmd.add(String.format("%f", volume));
+    });
 
     List<String> eval = new ArrayList<>();
-    if (request.voice != null) {
-      eval.add("(voice_" + request.voice + ")");
-    }
-    if (request.speed != null) {
-      eval.add(String.format("(Parameter.set 'Duration_Stretch %f)", 1 / request.speed));
-    }
+    request.voice.ifPresent(voice -> eval.add("(voice_" + voice + ")"));
+    request.speed.ifPresent(speed -> eval.add(String.format("(Parameter.set 'Duration_Stretch %f)", 1 / speed)));
     if (eval.size() > 0) {
       cmd.add("-eval");
       cmd.add(eval.size() == 1 ? eval.get(0) : "(list " + String.join(" ", eval) + ")");

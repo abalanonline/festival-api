@@ -16,6 +16,8 @@
 
 package ab;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class SvoxPico implements Consumer<TextRequest> {
@@ -28,9 +30,11 @@ public class SvoxPico implements Consumer<TextRequest> {
 
   @Override
   public void accept(TextRequest request) {
-    String cmd = "pico2wave -w " + request.targetFile;
-    String locale = request.locale;
-    if (locale != null) {
+    List<String> cmd = new ArrayList<>();
+    cmd.add("pico2wave");
+    cmd.add("-w");
+    cmd.add(request.targetFile.toString());
+    request.locale.ifPresent(locale -> {
       if (locale.length() == 2) {
         for (String s : LOCALE_LIST) {
           if (s.startsWith(locale)) {
@@ -39,15 +43,12 @@ public class SvoxPico implements Consumer<TextRequest> {
           }
         }
       }
-      cmd += " -l " + locale.replace('_', '-'); // BCP 47, RFC 5646 sensitive
-    }
-    String tags = "";
-    if (request.speed != null) {
-      tags += String.format("<speed level=\"%d\">", (int) Math.round(request.speed * 100));
-    }
-    if (request.volume != null) {
-      tags += String.format("<volume level=\"%d\">", (int) Math.round(request.volume * 100));
-    }
-    Exec.exec(cmd.split("\\s+"), tags + request.inputText);
+      cmd.add("-l");
+      cmd.add(locale.replace('_', '-')); // BCP 47, RFC 5646 sensitive
+    });
+    StringBuilder tags = new StringBuilder();
+    request.speed.ifPresent(speed -> tags.append(String.format("<speed level=\"%d\">", (int) Math.round(speed * 100))));
+    request.volume.ifPresent(vol -> tags.append(String.format("<volume level=\"%d\">", (int) Math.round(vol * 100))));
+    Exec.exec(cmd.toArray(new String[0]), tags.toString() + request.inputText);
   }
 }

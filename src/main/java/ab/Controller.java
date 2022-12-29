@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public class Controller extends NanoHTTPD implements AutoCloseable {
@@ -69,14 +70,8 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
             ? this.svoxPico : this.festival;
         TextRequest request = new TextRequest(map.get("INPUT_TEXT")).locale(map.get("LOCALE")).voice(voice)
             .targetFile(Files.createTempFile("festival-api_", ".wav"));
-        String speed = map.get("SPEED");
-        if (speed != null) {
-          request.speed(Double.parseDouble(speed));
-        }
-        String volume = map.get("VOLUME");
-        if (volume != null) {
-          request.volume(Double.parseDouble(volume));
-        }
+        Optional.ofNullable(map.get("SPEED")).ifPresent(s -> request.speed(Double.parseDouble(s)));
+        Optional.ofNullable(map.get("VOLUME")).ifPresent(s -> request.volume(Double.parseDouble(s)));
         tts.accept(request);
         byte[] response = waveProcess.apply(request);
         return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",

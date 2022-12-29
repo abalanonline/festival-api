@@ -17,13 +17,15 @@
 package ab;
 
 import java.nio.file.Path;
+import java.util.Optional;
+import java.util.OptionalDouble;
 
 public class TextRequest {
   public String inputText;
-  public String voice;
-  public String locale;
-  public Double speed;
-  public Double volume;
+  public Optional<String> voice = Optional.empty();
+  public Optional<String> locale = Optional.empty();
+  public OptionalDouble speed = OptionalDouble.empty();
+  public OptionalDouble volume = OptionalDouble.empty();
   public Path targetFile;
 
   public TextRequest(String inputText) {
@@ -31,22 +33,22 @@ public class TextRequest {
   }
 
   public TextRequest voice(String voice) {
-    this.voice = voice;
+    this.voice = Optional.ofNullable(voice);
     return this;
   }
 
   public TextRequest locale(String locale) {
-    this.locale = locale;
+    this.locale = Optional.ofNullable(locale);
     return this;
   }
 
   public TextRequest speed(double speed) {
-    this.speed = speed;
+    this.speed = OptionalDouble.of(speed);
     return this;
   }
 
   public TextRequest volume(double volume) {
-    this.volume = volume;
+    this.volume = OptionalDouble.of(volume);
     return this;
   }
 
