@@ -18,6 +18,7 @@ package ab;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 public class Festival implements Consumer<TextRequest> {
@@ -35,14 +36,17 @@ public class Festival implements Consumer<TextRequest> {
     cmd.add("-o");
     cmd.add(request.targetFile.toString());
 
+    // volume is nearly identical to ffmpeg
     request.volume.ifPresent(volume -> {
       cmd.add("-scale");
       cmd.add(String.format("%f", volume));
     });
+    request.volume = OptionalDouble.empty();
 
     List<String> eval = new ArrayList<>();
     request.voice.ifPresent(voice -> eval.add("(voice_" + voice + ")"));
-    request.speed.ifPresent(speed -> eval.add(String.format("(Parameter.set 'Duration_Stretch %f)", 1 / speed)));
+    // not reliable - ignored or inaccurately applied, commented for reference
+    // request.speed.ifPresent(speed -> eval.add(String.format("(Parameter.set 'Duration_Stretch %f)", 1 / speed)));
     if (eval.size() > 0) {
       cmd.add("-eval");
       cmd.add(eval.size() == 1 ? eval.get(0) : "(list " + String.join(" ", eval) + ")");
