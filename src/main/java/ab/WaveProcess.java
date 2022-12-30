@@ -29,8 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class WaveProcess {
-  double silenceGate = 0.2; // 274 is the lowest for awb, 0.159487776 for p90
-  double silenceRead = 0.2; // 5354 samples 0.334625 s
+  double silenceRead = 0.24; // 5354 samples 0.334625 s, 210-240 ms
   double silenceWrite = 1.0; // 17299 samples 1.0811875 s
 
   public WaveProcess() {
@@ -80,9 +79,9 @@ public class WaveProcess {
         percentile[i] = Math.abs(buffer.getShort());
       }
       Arrays.sort(percentile);
-      int p90 = percentile[sampleSize * 9 / 10];
+      int p50m = percentile[sampleSize / 2];
       buffer.reset();
-      int st = (int) Math.round(p90 * silenceGate);
+      int st = p50m * 4 / 5;
       int sr = (int) Math.round(samplesPerSec * silenceRead);
       int sw = (int) Math.round(samplesPerSec * silenceWrite);
 
@@ -131,10 +130,12 @@ public class WaveProcess {
   }
 
   public byte[] apply(TextRequest request) {
-    fixSilence(request.targetFile, request.speed.orElse(1) * silenceWrite);
+    if (request.fixSilence) {
+      fixSilence(request.targetFile, request.speed.orElse(1) * silenceWrite);
+    }
 
     Path processedFile = request.targetFile;
-    if (true) { // FIXME: 2022-12-29 must be conditional
+    if (request.speed.isPresent() || request.volume.isPresent()) {
       String fi = request.targetFile.toString();
       String fo = fi + ".wav";
       processedFile = Paths.get(fo);
@@ -154,7 +155,7 @@ public class WaveProcess {
         cmd.add(String.join(",", filter));
       }
       cmd.add(fo);
-      System.out.println(Instant.now() + " " + String.join(" ", cmd)); // FIXME: 2022-12-29 reduce details
+      System.out.println(Instant.now() + " ffmpeg " + String.join(" ", filter));
       Exec.exec(cmd.toArray(new String[0]), "");
     }
     try {

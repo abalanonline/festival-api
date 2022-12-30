@@ -23,8 +23,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 public class Controller extends NanoHTTPD implements AutoCloseable {
@@ -35,6 +38,7 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
   private final Consumer<TextRequest> festival;
   private final Consumer<TextRequest> svoxPico;
   private final WaveProcess waveProcess;
+  private final Set<UUID> fixSilence;
 
   public Controller() {
     super(API_PORT);
@@ -42,6 +46,8 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
     festival = new Festival();
     svoxPico = new SvoxPico();
     waveProcess = new WaveProcess();
+    fixSilence = new HashSet<>();
+    fixSilence.add(UUID.fromString("5a91d3df-f49f-3d4c-8f84-ef5792f5fb34"));
     try {
       System.out.println("start");
       start();
@@ -71,6 +77,8 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
             ? this.svoxPico : this.festival;
         TextRequest request = new TextRequest(map.get("INPUT_TEXT"), Files.createTempFile("festival-api_", ".wav"))
             .locale(map.get("LOCALE")).voice(voice);
+        UUID voiceUuid = UUID.nameUUIDFromBytes(Optional.ofNullable(voice).orElse("").getBytes());
+        request.fixSilence = fixSilence.contains(voiceUuid);
         Optional.ofNullable(map.get("SPEED")).ifPresent(s -> request.speed(Double.parseDouble(s)));
         Optional.ofNullable(map.get("VOLUME")).ifPresent(s -> request.volume(Double.parseDouble(s)));
         tts.accept(request);

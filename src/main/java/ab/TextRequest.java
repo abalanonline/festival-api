@@ -31,6 +31,7 @@ public class TextRequest {
   public Optional<String> locale = Optional.empty();
   public OptionalDouble speed = OptionalDouble.empty();
   public OptionalDouble volume = OptionalDouble.empty();
+  public boolean fixSilence;
 
   public TextRequest(String inputText, Path targetFile) {
     this.inputText = inputText;
