@@ -1,2 +1,2 @@
 # festival-api
-REST API for Festival Speech Synthesis System
+Text-to-speech microservice for [December](https://github.com/abalanonline/december)

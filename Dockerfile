@@ -19,7 +19,7 @@ RUN mvn clean package
 FROM debian:11-slim
 RUN sed -i -e 's/bullseye main/bullseye main non-free/' /etc/apt/sources.list &&\
   apt-get update &&\
-  apt-get install -y libttspico-utils openjdk-11-jre-headless wget bzip2 sgml-base libncurses5 sysv-rc &&\
+  apt-get install -y ffmpeg libttspico-utils openjdk-11-jre-headless wget bzip2 sgml-base libncurses5 sysv-rc &&\
   wget http://archive.debian.org/debian/pool/main/e/esound/esound-common_0.2.36-3_all.deb &&\
   dpkg -i esound-common_0.2.36-3_all.deb &&\
   wget http://archive.debian.org/debian/pool/main/a/audiofile/libaudiofile0_0.2.6-8_amd64.deb &&\
@@ -50,6 +50,6 @@ RUN mkdir -p /usr/share/festival/voices/ &&\
 
 COPY --from=build /target/festival-api-jar-with-dependencies.jar /festival-api.jar
 EXPOSE 59125
-CMD ["java", "-jar", "/festival-api.jar"]
+CMD ["java", "-ea", "-jar", "/festival-api.jar"]
 
 # docker run -d --rm --name festival-api -p 59125:59125 festival-api

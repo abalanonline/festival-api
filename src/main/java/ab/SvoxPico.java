@@ -16,42 +16,45 @@
 
 package ab;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.OptionalDouble;
+import java.util.function.Consumer;
 
-public class SvoxPico implements Function<TextRequest, byte[]> {
+public class SvoxPico implements Consumer<TextRequest> {
 
-  public static final String LOCALE_LIST = "en-US en-GB de-DE es-ES fr-FR it-IT";
+  public static final String[] LOCALE_LIST = {"en-US", "en-GB", "de-DE", "es-ES", "fr-FR", "it-IT"};
 
   public SvoxPico() {
-    System.out.println(LOCALE_LIST);
+    System.out.println(String.join(" ", LOCALE_LIST));
   }
 
   @Override
-  public byte[] apply(TextRequest request) {
-    byte[] bytes;
-    try {
-      Path wav = Files.createTempFile("festival-api_", ".wav");
-      String cmd = "pico2wave -w " + wav;
-      if (request.locale != null) {
-        cmd += " -l " + request.locale.replace('_', '-'); // BCP 47, RFC 5646 sensitive
+  public void accept(TextRequest request) {
+    List<String> cmd = new ArrayList<>();
+    cmd.add("pico2wave");
+    cmd.add("-w");
+    cmd.add(request.targetFile.toString());
+    request.locale.ifPresent(locale -> {
+      if (locale.length() == 2) {
+        for (String s : LOCALE_LIST) {
+          if (s.startsWith(locale)) {
+            locale = s;
+            break;
+          }
+        }
       }
-      String tags = "";
-      if (request.speed != null) {
-        tags += String.format("<speed level=\"%d\">", (int) Math.round(request.speed * 100));
-      }
-      if (request.volume != null) {
-        tags += String.format("<volume level=\"%d\">", (int) Math.round(request.volume * 100));
-      }
-      Exec.exec(cmd.split("\\s+"), tags + request.inputText);
-      bytes = Files.readAllBytes(wav);
-      Files.delete(wav);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-    return bytes;
+      cmd.add("-l");
+      cmd.add(locale.replace('_', '-')); // BCP 47, RFC 5646 sensitive
+    });
+    StringBuilder tags = new StringBuilder();
+    // speed is identical to ffmpeg with the exception of pauses, they are not affected
+    request.speed.ifPresent(speed -> tags.append(String.format("<speed level=\"%d\">", (int) Math.round(speed * 100))));
+    request.speed = OptionalDouble.empty();
+    // VOLUME=1.0 set the default <volume level="50">
+    // identical to ffmpeg with <1% difference
+    request.volume.ifPresent(vol -> tags.append(String.format("<volume level=\"%d\">", (int) Math.round(vol * 50))));
+    request.volume = OptionalDouble.empty();
+    Exec.exec(cmd.toArray(new String[0]), tags.toString() + request.inputText);
   }
 }

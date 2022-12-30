@@ -21,22 +21,33 @@ import fi.iki.elonen.NanoHTTPD;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.time.Instant;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 public class Controller extends NanoHTTPD implements AutoCloseable {
 
   public static final int API_PORT = 59125;
   public static final String API_URI = "/process";
 
-  private final Function<TextRequest, byte[]> festival;
-  private final Function<TextRequest, byte[]> svoxPico;
+  private final Consumer<TextRequest> festival;
+  private final Consumer<TextRequest> svoxPico;
+  private final WaveProcess waveProcess;
+  private final Set<UUID> fixSilence;
 
   public Controller() {
     super(API_PORT);
     mimeTypes();
     festival = new Festival();
     svoxPico = new SvoxPico();
+    waveProcess = new WaveProcess();
+    fixSilence = new HashSet<>();
+    fixSilence.add(UUID.fromString("5a91d3df-f49f-3d4c-8f84-ef5792f5fb34"));
     try {
       System.out.println("start");
       start();
@@ -61,22 +72,23 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
           session.parseBody(map);
         }
         String voice = map.get("VOICE");
-        Function<TextRequest, byte[]> tts = voice == null || voice.startsWith("nanotts:")
+        Consumer<TextRequest> tts = voice == null || voice.startsWith("nanotts:")
             || voice.equals("svox") || voice.equals("ttspico")
             ? this.svoxPico : this.festival;
-        TextRequest request = new TextRequest(map.get("INPUT_TEXT")).locale(map.get("LOCALE")).voice(voice);
-        String speed = map.get("SPEED");
-        if (speed != null) {
-          request.speed(Double.parseDouble(speed));
-        }
-        String volume = map.get("VOLUME");
-        if (volume != null) {
-          request.volume(Double.parseDouble(volume));
-        }
-        byte[] response = tts.apply(request);
+        TextRequest request = new TextRequest(map.get("INPUT_TEXT"), Files.createTempFile("festival-api_", ".wav"))
+            .locale(map.get("LOCALE")).voice(voice);
+        UUID voiceUuid = UUID.nameUUIDFromBytes(Optional.ofNullable(voice).orElse("").getBytes());
+        request.fixSilence = fixSilence.contains(voiceUuid);
+        Optional.ofNullable(map.get("SPEED")).ifPresent(s -> request.speed(Double.parseDouble(s)));
+        Optional.ofNullable(map.get("VOLUME")).ifPresent(s -> request.volume(Double.parseDouble(s)));
+        tts.accept(request);
+        byte[] response = waveProcess.apply(request);
+        System.out.println(Instant.now() + " ok");
         return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",
             new ByteArrayInputStream(response), response.length);
       } catch (IOException | UncheckedIOException | ResponseException | Exec.ExecException e) {
+        System.err.println(Instant.now());
+        e.printStackTrace();
         return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, e.getMessage());
       }
     }
