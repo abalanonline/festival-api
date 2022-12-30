@@ -19,10 +19,10 @@ RUN mvn clean package
 FROM debian:11-slim
 RUN sed -i -e 's/bullseye main/bullseye main non-free/' /etc/apt/sources.list &&\
   apt-get update &&\
-  apt-get install -y festival libttspico-utils openjdk-11-jre-headless &&\
+  apt-get install -y festival ffmpeg libttspico-utils openjdk-11-jre-headless &&\
   rm -rf /var/lib/apt/lists/*
 COPY --from=build /target/festival-api-jar-with-dependencies.jar /festival-api.jar
 EXPOSE 59125
-CMD ["java", "-jar", "/festival-api.jar"]
+CMD ["java", "-ea", "-jar", "/festival-api.jar"]
 
 # docker run -d --rm --name festival-api -p 59125:59125 festival-api
