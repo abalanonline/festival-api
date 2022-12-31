@@ -135,9 +135,9 @@ public class WaveProcess {
     }
 
     Path processedFile = request.targetFile;
-    if (request.speed.isPresent() || request.volume.isPresent()) {
+    if (request.speed.isPresent() || request.volume.isPresent() || request.mp3) {
       String fi = request.targetFile.toString();
-      String fo = fi + ".wav";
+      String fo = fi + (request.mp3 ? ".mp3" : ".wav");
       processedFile = Paths.get(fo);
       List<String> filter = new ArrayList<>();
       request.speed.ifPresent(speed -> filter.add(String.format("atempo=%f", speed)));

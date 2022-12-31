@@ -79,12 +79,13 @@ public class Controller extends NanoHTTPD implements AutoCloseable {
             .locale(map.get("LOCALE")).voice(voice);
         UUID voiceUuid = UUID.nameUUIDFromBytes(Optional.ofNullable(voice).orElse("").getBytes());
         request.fixSilence = fixSilence.contains(voiceUuid);
+        request.mp3 = "MP3_FILE".equals(map.get("AUDIO"));
         Optional.ofNullable(map.get("SPEED")).ifPresent(s -> request.speed(Double.parseDouble(s)));
         Optional.ofNullable(map.get("VOLUME")).ifPresent(s -> request.volume(Double.parseDouble(s)));
         tts.accept(request);
         byte[] response = waveProcess.apply(request);
         System.out.println(Instant.now() + " ok");
-        return newFixedLengthResponse(Response.Status.OK, "audio/x-wav",
+        return newFixedLengthResponse(Response.Status.OK, request.mp3 ? "audio/mpeg" : "audio/x-wav",
             new ByteArrayInputStream(response), response.length);
       } catch (IOException | UncheckedIOException | ResponseException | Exec.ExecException e) {
         System.err.println(Instant.now());

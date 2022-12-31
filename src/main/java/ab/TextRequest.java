@@ -32,6 +32,7 @@ public class TextRequest {
   public OptionalDouble speed = OptionalDouble.empty();
   public OptionalDouble volume = OptionalDouble.empty();
   public boolean fixSilence;
+  public boolean mp3;
 
   public TextRequest(String inputText, Path targetFile) {
     this.inputText = inputText;
