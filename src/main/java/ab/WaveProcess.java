@@ -145,7 +145,8 @@ public class WaveProcess {
       List<String> cmd = new ArrayList<>();
       cmd.add("ffmpeg");
       cmd.add("-loglevel");
-      cmd.add("warning");
+      cmd.add("error"); // loglevel must be error, warning produce this output:
+                        // [libmp3lame @ 0x55e661f03f40] Trying to remove 576 samples, but the queue is empty
       cmd.add("-channel_layout");
       cmd.add("mono"); // die if not
       cmd.add("-i");
@@ -154,6 +155,7 @@ public class WaveProcess {
         cmd.add("-af");
         cmd.add(String.join(",", filter));
       }
+      cmd.add("-y"); // Overwrite output files without asking
       cmd.add(fo);
       System.out.println(Instant.now() + " ffmpeg " + String.join(" ", filter));
       Exec.exec(cmd.toArray(new String[0]), "");

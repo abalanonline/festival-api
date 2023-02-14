@@ -78,6 +78,7 @@ public class Exec {
         return futureStdout.join();
       }
     } catch (IOException | InterruptedException e) {
+      System.err.println(String.join(" ", cmdarray));
       throw new ExecException(e);
     }
   }
